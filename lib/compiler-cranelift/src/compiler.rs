@@ -360,7 +360,7 @@ impl Compiler for CraneliftCompiler {
             .into_iter()
             .collect::<PrimaryMap<SignatureIndex, FunctionBody>>();
 
-        use wasmer_types::VMOffsets;
+        use wasmer_vm::VMOffsets;
         let offsets = VMOffsets::new_for_trampolines(frontend_config.pointer_bytes());
         // dynamic function trampolines (only for imported functions)
         #[cfg(not(feature = "rayon"))]

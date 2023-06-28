@@ -14,6 +14,7 @@ edition = "2018"
 [dependencies]
 wasmer-compiler = { path = "../compiler", version = "=2.3.0", features = ["translator"], default-features = false }
 wasmer-types = { path = "../types", version = "=2.3.0", default-features = false, features = ["std"] }
+wasmer-vm = { path = "../vm", version = "=2.3.0" }
 cranelift-entity = { version = "0.82", default-features = false }
 cranelift-codegen = { version = "0.82", default-features = false, features = ["x86", "arm64"] }
 cranelift-frontend = { version = "0.82", default-features = false }

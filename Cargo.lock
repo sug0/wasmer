@@ -2940,6 +2940,7 @@ dependencies = [
  "tracing",
  "wasmer-compiler",
  "wasmer-types",
+ "wasmer-vm",
 ]
 
 [[package]]
@@ -2982,6 +2983,7 @@ dependencies = [
  "target-lexicon 0.12.4",
  "wasmer-compiler",
  "wasmer-types",
+ "wasmer-vm",
 ]
 
 [[package]]
@@ -3163,7 +3165,6 @@ dependencies = [
  "enum-iterator",
  "indexmap",
  "loupe",
- "more-asserts",
  "rkyv",
  "serde",
  "thiserror",

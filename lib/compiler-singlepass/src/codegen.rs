@@ -19,10 +19,13 @@ use wasmer_compiler::{
 };
 use wasmer_types::{
     entity::{EntityRef, PrimaryMap},
-    FunctionIndex, FunctionType, GlobalIndex, LocalFunctionIndex, LocalMemoryIndex, MemoryIndex,
-    MemoryStyle, ModuleInfo, SignatureIndex, TableIndex, TableStyle, TrapCode, Type,
-    VMBuiltinFunctionIndex, VMOffsets,
+    FunctionType,
 };
+use wasmer_types::{
+    FunctionIndex, GlobalIndex, LocalFunctionIndex, LocalMemoryIndex, MemoryIndex, ModuleInfo,
+    SignatureIndex, TableIndex, TrapCode, Type,
+};
+use wasmer_vm::{MemoryStyle, TableStyle, VMBuiltinFunctionIndex, VMOffsets};
 
 /// The singlepass per-function code generator.
 pub struct FuncGen<'a, M: Machine> {
