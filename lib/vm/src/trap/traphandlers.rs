@@ -107,6 +107,70 @@ cfg_if::cfg_if! {
         static mut PREV_SIGILL: MaybeUninit<libc::sigaction> = MaybeUninit::uninit();
         static mut PREV_SIGFPE: MaybeUninit<libc::sigaction> = MaybeUninit::uninit();
 
+        cfg_if::cfg_if! {
+            if #[cfg(all(
+                target_pointer_width = "64",
+                any(
+                    target_os = "macos",
+                    target_os = "ios",
+                    target_os = "tvos",
+                    target_os = "watchos"
+                )
+            ))]
+            {
+                struct Darwin_mcontext64 {
+                    __es: Darwin_arm_exception_state64,
+                    __ss: Darwin_arm_thread_state64,
+                    __ns: Darwin_arm_neon_state64,
+                }
+
+                struct Darwin_arm_exception_state64 {
+                    __far: u64,
+                    __esr: u32,
+                    __exception: u32,
+                }
+
+                struct Darwin_arm_thread_state64 {
+                    __x: [u64; 29],
+                    __fp: u64,
+                    __lr: u64,
+                    __sp: u64,
+                    __pc: u64,
+                    __cpsr: u32,
+                    __pad: u32,
+                }
+
+                #[repr(C, align(16))]
+                struct Darwin_arm_neon_state64 {
+                    __v: [[u64; 2]; 32],
+                    __fpsr: u32,
+                    __fpcr: u32,
+                }
+
+                // We redefine [`libc::ucontext_t`] with one of its fields missing.
+                // <https://github.com/rust-lang/libc/issues/2812> introduced a fix
+                // for a segmentation fault in [`libc::getcontext`] that in turn broke
+                // the sigaction API, since it expects a pointer to a [`libc::ucontext_t`]
+                // type erased by a [`libc::c_void`] which aligns to 8 bytes, while
+                // [`libc::ucontext_t`] is aligned to 16 bytes with the change in the
+                // linked issue.
+                #[repr(C, align(8))]
+                struct Ucontext {
+                    uc_onstack: libc::c_int,
+                    uc_sigmask: libc::sigset_t,
+                    uc_stack: libc::stack_t,
+                    uc_link: *mut Ucontext,
+                    uc_mcsize: usize,
+                    uc_mcontext: *mut Darwin_mcontext64,
+                }
+            } else {
+                type Ucontext = libc::ucontext_t;
+            }
+        }
+
+        // Assert the alignment of [`Ucontext`] is compatible with the void ptr
+        const _: [(); std::mem::align_of::<*mut libc::c_void>() - std::mem::align_of::<Ucontext>()] = [];
+
         unsafe fn platform_init() {
             let register = |slot: &mut MaybeUninit<libc::sigaction>, signal: i32| {
                 let mut handler: libc::sigaction = mem::zeroed();
@@ -216,7 +280,7 @@ cfg_if::cfg_if! {
                 }
                 _ => None,
             };
-            let ucontext = &mut *(context as *mut libc::ucontext_t);
+            let ucontext = &mut *(context as *mut Ucontext);
             let (pc, sp) = get_pc_sp(ucontext);
             let handled = TrapHandlerContext::handle_trap(
                 pc,
@@ -256,7 +320,7 @@ cfg_if::cfg_if! {
             }
         }
 
-        unsafe fn get_pc_sp(context: &libc::ucontext_t) -> (usize, usize) {
+        unsafe fn get_pc_sp(context: &Ucontext) -> (usize, usize) {
             let (pc, sp);
             cfg_if::cfg_if! {
                 if #[cfg(all(
@@ -308,7 +372,7 @@ cfg_if::cfg_if! {
             (pc, sp)
         }
 
-        unsafe fn update_context(context: &mut libc::ucontext_t, regs: TrapHandlerRegs) {
+        unsafe fn update_context(context: &mut Ucontext, regs: TrapHandlerRegs) {
             cfg_if::cfg_if! {
                 if #[cfg(all(
                         any(target_os = "linux", target_os = "android"),
